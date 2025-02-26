@@ -6,10 +6,11 @@
     <title>随机图片 API</title>
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
     <div class="background-container"></div>
-    <div class="overlay"></div>
     <div class="container">
         <h1 class="animate__animated animate__fadeInDown">欢迎使用随机图片 API</h1>
         <p class="animate__animated animate__fadeIn">点击下方按钮，立即获取精美图片！</p>
@@ -23,7 +24,10 @@
             <p>
                 您可以通过以下 URL 直接访问 API，获取随机图片：
             </p>
-            <pre><code><span id="api-url"></span></code></pre>
+            <div class="api-url-container">
+                <pre><code id="api-url"></code></pre>
+                <button id="copy-btn" title="复制 API 地址"><i class="fas fa-copy"></i></button>
+              </div>
 
             <p>在您的网站或应用中，可以使用 `&lt;img&gt;` 标签来显示图片：</p>
             <pre><code class="html-code">&lt;img src="<span id="api-url-example"></span>" alt="Random Image"&gt;</code></pre>
@@ -38,7 +42,8 @@
         const imageContainer = document.getElementById('image-container');
         const apiUrl = document.getElementById('api-url');
         const apiUrlExample = document.getElementById('api-url-example');
-        const backgroundContainer = document.querySelector('.background-container'); // 获取背景容器
+        const backgroundContainer = document.querySelector('.background-container');
+        const copyBtn = document.getElementById('copy-btn');  // 复制按钮
         const baseUrl = window.location.origin;
         const apiEndpoint = '/api/random';
         const fullApiUrl = baseUrl + apiEndpoint;
@@ -77,24 +82,39 @@
                     const blob = await response.blob();
                     const imageUrl = URL.createObjectURL(blob);
                     imageContainer.innerHTML = `<img src="${imageUrl}" alt="Random Image" class="random-image">`;
-                } else if (response.redirected) {
+                } else if(response.redirected){
                     window.location.href = response.url;
-                }else {
+                }
+                else {
                     const errorData = await response.json();
-                   imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`;
+                    imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`;
                 }
             } catch (error) {
                 console.error('Error fetching image:', error);
-                imageContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-            }
+               imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`;            }
         }
 
-        getImgBtn.addEventListener('click', getRandomImage);
+         // 复制 API URL
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(fullApiUrl)
+                .then(() => {
+                    // 复制成功提示 (例如，使用 Tooltip 或短暂的消息)
+                    copyBtn.classList.add('copied'); // 添加 copied 类
+                    copyBtn.title = '已复制！';
+                    setTimeout(() => {  //移除复制成功的提示
+                        copyBtn.classList.remove('copied');
+                         copyBtn.title = '复制 API 地址';
+                    }, 2000); // 2 秒后恢复
+                })
+                .catch(err => {
+                    console.error('Failed to copy URL:', err);
+                    // 复制失败处理
+                });
+        });
 
-        // 首次加载时设置背景图片
-        setBackgroundImage();
-          // 添加一个定时器，每隔一段时间更换背景图片（例如，每 30 秒）
-         setInterval(setBackgroundImage, 30000);
+        getImgBtn.addEventListener('click', getRandomImage);
+        setBackgroundImage(); //首次加载设置背景
+        setInterval(setBackgroundImage, 30000); //定时更换背景
     </script>
 </body>
 </html>

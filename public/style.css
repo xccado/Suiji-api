@@ -20,11 +20,10 @@ body {
     height: 100%;
     background-size: cover;
     background-position: center;
-    /* 移除 z-index */
     transition: background-image 0.5s ease-in-out;
 }
 
-/* 单独对背景图片设置模糊 */
+/* 使用伪元素设置背景透明度 */
 .background-container::after {
     content: "";
     position: absolute;
@@ -32,31 +31,21 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: inherit;  /* 继承父元素的背景 */
-    filter: blur(3px);
-    z-index: -1; /* 保持不变 */
+    background-color: rgba(255, 255, 255, 0.7); /* 白色，70% 不透明度 */
+    z-index: -1;
 }
 
-/* 半透明遮罩层 */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    /* 移除 z-index */
-}
+/* 移除 .overlay 相关的样式 */
 
 .container {
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.9); /* 容器的半透明度可以根据需要调整 */
     padding: 3rem;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     max-width: 80%;
     width: 600px;
     position: relative;
-    z-index: 1; /* 确保内容在最上层 */
+    z-index: 1;
 }
 
 h1 {
@@ -64,9 +53,8 @@ h1 {
     margin-bottom: 0.5rem;
 }
 .loading, .error{
-    color: #2c3e50;
+   color: #2c3e50;
 }
-
 p {
     color: #7f8c8d;
     line-height: 1.6;
@@ -124,14 +112,42 @@ button:hover {
     padding: 1rem;
     border-radius: 4px;
     overflow-x: auto;
-    text-align: left;
+     text-align: left;
 }
 
 #api-info code {
     font-family: 'Courier New', Courier, monospace;
     color: #333;
 }
-
 .html-code {
     color: #8e44ad;
+}
+/* 新增：API URL 容器样式 */
+.api-url-container {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 水平居中 */
+}
+
+#copy-btn {
+    background-color: #f0f0f0;
+    color: #333;
+      border: 1px solid #ccc;
+    padding: 0.5rem;
+    margin-left: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+#copy-btn:hover {
+    background-color: #ddd;
+     box-shadow: none; /* 移除按钮的hover */
+      transform: none;
+}
+
+#copy-btn.copied {
+    color: #27ae60; /* 复制成功后的颜色 */
+     background-color: #f0f0f0;
 }
