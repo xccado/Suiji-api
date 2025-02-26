@@ -1,0 +1,94 @@
+/* public/style.css */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* 使用更现代的字体 */
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5; /* 浅灰色背景 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+}
+
+.container {
+    background-color: white;
+    padding: 3rem; /* 更大的内边距 */
+    border-radius: 12px; /* 更圆润的边角 */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* 更强的阴影 */
+    max-width: 80%; /* 最大宽度 */
+    width: 600px; /* 固定宽度 */
+}
+
+h1 {
+    color: #2c3e50; /* 深蓝色标题 */
+    margin-bottom: 0.5rem; /* 减少标题下边距 */
+}
+.loading, .error{
+   color: #2c3e50;
+}
+
+p {
+    color: #7f8c8d; /* 柔和的文本颜色 */
+    line-height: 1.6; /* 增加行高 */
+}
+
+button {
+    background-color: #3498db; /* 亮蓝色按钮 */
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px; /* 稍圆的按钮边角 */
+    cursor: pointer;
+    font-size: 1.1rem; /* 更大的字体 */
+    margin-top: 1rem;
+    transition: all 0.3s ease; /* 平滑过渡 */
+    outline: none; /* 去除点击时的边框 */
+}
+
+button:hover {
+    background-color: #2980b9; /* 鼠标悬停时更深的蓝色 */
+    transform: translateY(-3px); /* 鼠标悬停时轻微上移 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 鼠标悬停时更强的阴影 */
+}
+
+#image-container {
+    margin-top: 2rem;
+}
+.random-image{
+     max-width: 100%;
+     height: auto;
+     border-radius: 8px; /* 图片圆角 */
+     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 图片阴影 */
+     transition: transform 0.3s ease; /* 鼠标悬停时放大效果 */
+}
+.random-image:hover {
+    transform: scale(1.1); /* 鼠标悬停时放大 */
+}
+
+#api-info {
+    margin-top: 3rem;
+    border-top: 1px solid #ddd; /* 添加分隔线 */
+    padding-top: 2rem;
+}
+
+#api-info h2 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+#api-info pre {
+    background-color: #f8f8f8;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto; /* 代码过长时显示滚动条 */
+     text-align: left;
+}
+
+#api-info code {
+    font-family: 'Courier New', Courier, monospace; /* 代码字体 */
+    color: #333;
+}
+.html-code{
+    color: #8e44ad;
+}
