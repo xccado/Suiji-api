@@ -3,49 +3,60 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f5f5f5; /* 浅灰色背景，现在会被背景图片覆盖 */
+    background-color: #f5f5f5;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     text-align: center;
-    overflow: hidden;  /* 隐藏滚动条 */
+    /* overflow: hidden;  *//* 移除此行，允许滚动 */
 }
 
-/* 新增：背景容器样式 */
+/* 背景容器样式 */
 .background-container {
-    position: fixed; /* 固定定位 */
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-size: cover; /* 背景图片覆盖整个容器 */
-    background-position: center; /* 背景图片居中 */
-    z-index: -2; /* 放置在最底层 */
-    filter: blur(5px);  /* 添加模糊效果 */
-      transition: background-image 0.5s ease-in-out; /* 平滑过渡 */
+    background-size: cover;
+    background-position: center;
+    z-index: -2;
+    /* filter: blur(5px); */  /* 移除或降低模糊度 */
+     transition: background-image 0.5s ease-in-out; /* 平滑过渡 */
 }
-
-/* 新增：半透明遮罩层 */
+/* 单独对背景图片设置模糊 */
+.background-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  #filter: blur(3px); /* 调整模糊值*/
+  z-index: -1;
+}
+/* 半透明遮罩层 */
 .overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.4); /* 半透明黑色 */
-    z-index: -1; /* 放置在背景图片上方，内容下方 */
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: -1;
 }
 
 .container {
-    background-color: rgba(255, 255, 255, 0.9); /* 半透明白色背景 */
+    background-color: rgba(255, 255, 255, 0.9);
     padding: 3rem;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     max-width: 80%;
     width: 600px;
-    position: relative; /* 使 z-index 生效 */
-    z-index: 1; /* 放置在遮罩层上方 */
+    position: relative;
+    z-index: 1;
 }
 
 h1 {
@@ -69,7 +80,7 @@ button {
     cursor: pointer;
     font-size: 1.1rem;
     margin-top: 1rem;
-   transition: all 0.3s ease; /* 平滑过渡 */
+   transition: all 0.3s ease;
     outline: none;
 }
 
@@ -99,7 +110,7 @@ button:hover {
     margin-top: 3rem;
     border-top: 1px solid #ddd;
     padding-top: 2rem;
-    color: #333; /* 深色文本，在浅色背景上更清晰 */
+    color: #333;
 }
 
 #api-info h2 {
