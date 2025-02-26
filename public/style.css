@@ -21,13 +21,11 @@ body {
     background-size: cover;
     background-position: center;
     transition: background-image 0.5s ease-in-out;
-    /* 调整这里的透明度值 */
     background-image: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), var(--bg-image);
     z-index: -1;
 }
 
 .container {
-    /* 进一步降低容器的透明度 */
     background-color: rgba(255, 255, 255, 0.5);
     padding: 3rem;
     border-radius: 12px;
@@ -38,7 +36,6 @@ body {
     z-index: 1;
 }
 
-/* 其余样式保持不变 */
 h1 {
     color: #2c3e50;
     margin-bottom: 0.5rem;
@@ -112,38 +109,43 @@ button:hover {
 #api-info code {
     font-family: 'Courier New', Courier, monospace;
     color: #333;
+    display: block; /* 使 code 元素块级显示 */
+    margin-bottom: 0.5em; /* 与下面的 <p> 元素保持间距 */
 }
 
 .html-code {
     color: #8e44ad;
 }
 
+.css-code {
+    color: #2980b9;
+}
+
+.js-code {
+    color: #e67e22;
+}
+
 /* API URL 容器样式 */
 .api-url-container {
-    display: flex;
+     display: flex;
     align-items: center;
-    justify-content: center;
-}
-
-#copy-btn {
-    background-color: #f0f0f0;
-    color: #333;
-    border: 1px solid #ccc;
-    padding: 0.5rem;
-    margin-left: 0.5rem;
+    justify-content: space-between; /* 让按钮和 URL 在同一行，按钮靠右 */
+    background-color: #f8f8f8;
+    padding: 1rem;
     border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 1rem;
 }
-
+#copy-btn {
+    background-color: transparent; /* 按钮背景透明 */
+    color: #333;
+    border: none; /* 无边框 */
+    padding: 0;  /* 无内边距 */
+    margin-left: 0; /* 取消左边距 */
+    cursor: pointer;
+    transition: color 0.2s ease; /* 颜色过渡 */
+    font-size: 0.9rem; /* 字体略小 */
+}
 #copy-btn:hover {
-    background-color: #ddd;
     box-shadow: none;
     transform: none;
-}
-
-#copy-btn.copied {
-    color: #27ae60;
-    background-color: #f0f0f0;
+     color: #7f8c8d; /* 鼠标悬停时略微变色 */
 }

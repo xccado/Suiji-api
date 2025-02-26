@@ -20,20 +20,63 @@
         <div id="image-container"></div>
 
         <div id="api-info" class="animate__animated animate__fadeInUp">
-            <h2>API 使用说明</h2>
+           <h2>API 使用说明</h2>
+
             <p>
                 您可以通过以下 URL 直接访问 API，获取随机图片：
             </p>
             <div class="api-url-container">
                 <pre><code id="api-url"></code></pre>
                 <button id="copy-btn" title="复制 API 地址"><i class="fas fa-copy"></i></button>
-              </div>
+            </div>
 
             <p>在您的网站或应用中，可以使用 `&lt;img&gt;` 标签来显示图片：</p>
             <pre><code class="html-code">&lt;img src="<span id="api-url-example"></span>" alt="Random Image"&gt;</code></pre>
-             <p>
-                API 会自动根据用户设备（桌面或移动设备）返回相应尺寸的图片。
+
+            <h3>更多用法示例</h3>
+
+            <h4>1. 作为 CSS 背景</h4>
+            <p>您可以通过 CSS 的 <code>background-image</code> 属性，将本 API 用作网页或元素的背景：</p>
+            <pre><code class="css-code">body {
+  background-image: url('<span id="api-url-example2"></span>');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* 可选：固定背景 */
+}</code></pre>
+
+            <h4>2. 在 JavaScript 中使用</h4>
+
+            <p>您可以在 JavaScript 代码中通过 <code>fetch</code> API 来获取图片 URL，并进行更灵活的操作：</p>
+            <pre><code class="js-code">fetch('<span id="api-url-example3"></span>')
+  .then(response => response.blob())
+  .then(blob => {
+    const imageUrl = URL.createObjectURL(blob);
+    // 使用 imageUrl 做任何你想做的事情，例如：
+    // document.getElementById('myImage').src = imageUrl;
+  })
+  .catch(error => console.error('Error:', error));</code></pre>
+             <h4>3. 在Markdown中显示图片</h4>
+              <pre><code class="js-code">
+![Random Image](<span id="api-url-example4"></span>)
+            </code></pre>
+
+            <h4>设备自适应</h4>
+            <p>
+                API 会自动根据用户设备（桌面或移动设备）返回相应尺寸的图片。无需额外参数。
             </p>
+
+            <h4>自定义域名</h4>
+            <p>你可以将api部署到你到服务器，并且使用自己到域名。</p>
+
+            <h4>高级用法</h4>
+             <p>
+                如果您对 JavaScript 和 Web 开发有更深入的了解，您可以：
+            </p>
+            <ul>
+                <li>结合其他 JavaScript 库（如 React、Vue.js）使用本 API。</li>
+                <li>创建更复杂的图片加载和展示逻辑。</li>
+                <li>将图片数据与其他 API 结合使用。</li>
+            </ul>
         </div>
     </div>
 
@@ -42,16 +85,21 @@
         const imageContainer = document.getElementById('image-container');
         const apiUrl = document.getElementById('api-url');
         const apiUrlExample = document.getElementById('api-url-example');
+        const apiUrlExample2 = document.getElementById('api-url-example2'); //css
+        const apiUrlExample3 = document.getElementById('api-url-example3'); //js
+        const apiUrlExample4 = document.getElementById('api-url-example4'); //markdown
         const backgroundContainer = document.querySelector('.background-container');
-        const copyBtn = document.getElementById('copy-btn');  // 复制按钮
+        const copyBtn = document.getElementById('copy-btn');
         const baseUrl = window.location.origin;
         const apiEndpoint = '/api/random';
         const fullApiUrl = baseUrl + apiEndpoint;
 
         apiUrl.textContent = fullApiUrl;
         apiUrlExample.textContent = fullApiUrl;
-
-// 函数：设置背景图片
+        apiUrlExample2.textContent = fullApiUrl; //css
+        apiUrlExample3.textContent = fullApiUrl; //js
+        apiUrlExample4.textContent = fullApiUrl;
+        // 函数：设置背景图片
         async function setBackgroundImage() {
             try {
                 const response = await fetch(apiEndpoint);
@@ -60,7 +108,7 @@
                     const imageUrl = URL.createObjectURL(blob);
                      // 设置 CSS 变量
                     document.documentElement.style.setProperty('--bg-image', `url(${imageUrl})`);
-                    backgroundContainer.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)), var(--bg-image)`;
+                    backgroundContainer.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), var(--bg-image)`;
                 } else {
                     console.error('Failed to fetch background image');
                 }
@@ -80,20 +128,20 @@
                 getImgBtn.classList.remove('animate__jello');
                 getImgBtn.classList.add("animate__pulse", "animate__infinite");
 
-                if (response.ok) {
+                 if (response.ok) {
                     const blob = await response.blob();
                     const imageUrl = URL.createObjectURL(blob);
                     imageContainer.innerHTML = `<img src="${imageUrl}" alt="Random Image" class="random-image">`;
-                } else if(response.redirected){
+                } else if (response.redirected) {
                     window.location.href = response.url;
-                }
-                else {
+                }else {
                     const errorData = await response.json();
                     imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`;
                 }
-            } catch (error) {
+            } catch (error) {                
                 console.error('Error fetching image:', error);
-               imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`;            }
+                imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`;
+            }
         }
 
          // 复制 API URL
@@ -103,9 +151,9 @@
                     // 复制成功提示 (例如，使用 Tooltip 或短暂的消息)
                     copyBtn.classList.add('copied'); // 添加 copied 类
                     copyBtn.title = '已复制！';
-                    setTimeout(() => {  //移除复制成功的提示
+                    setTimeout(() => {
                         copyBtn.classList.remove('copied');
-                         copyBtn.title = '复制 API 地址';
+                        copyBtn.title = '复制 API 地址';
                     }, 2000); // 2 秒后恢复
                 })
                 .catch(err => {
@@ -115,8 +163,8 @@
         });
 
         getImgBtn.addEventListener('click', getRandomImage);
-        setBackgroundImage(); //首次加载设置背景
-        setInterval(setBackgroundImage, 30000); //定时更换背景
+        setBackgroundImage();
+         setInterval(setBackgroundImage, 30000);
     </script>
 </body>
 </html>
