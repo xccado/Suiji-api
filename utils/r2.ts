@@ -1,8 +1,8 @@
 // utils/r2.ts
-// 更改这里的导入
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "https://deno.land/x/aws_sdk@v3.515.0/clients/s3/mod.ts";
+// 使用 v3.32.0-1 的导入方式
+import { S3 } from "https://deno.land/x/aws_sdk@v3.32.0-1/client-s3/mod.ts";
 
-let s3: S3Client;
+let s3: S3;
 
 // 从环境变量中获取 Cloudflare R2 的配置信息, 在 Deno Deploy 的环境变量中配置
 const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
@@ -19,8 +19,7 @@ export async function initializeR2() {
 
     const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
 
-// 修改这里
-    s3 = new S3Client({
+    s3 = new S3({
         region: "auto",
         endpoint,
         credentials: {
@@ -34,11 +33,11 @@ export async function initializeR2() {
 
 export async function getR2Image(folder: string): Promise<string | undefined> {
     try {
-        // 列出指定文件夹下的所有对象, 这里也修改了
-        const listObjectsResponse = await s3.send(new ListObjectsV2Command({
+        // 列出指定文件夹下的所有对象
+        const listObjectsResponse = await s3.listObjectsV2({
             Bucket: bucketName,
             Prefix: folder + "/", // 注意这里的斜杠
-        }));
+        });
         console.log(`Listed objects in R2 bucket: ${bucketName}, folder: ${folder}`, listObjectsResponse);
 
         if (!listObjectsResponse.Contents || listObjectsResponse.Contents.length === 0) {
@@ -46,7 +45,7 @@ export async function getR2Image(folder: string): Promise<string | undefined> {
             return undefined;
         }
 
-        // 过滤掉非图片文件 (包含 webp)
+        // 过滤掉非图片文件
         const imageKeys = listObjectsResponse.Contents
             .filter(obj => obj.Key && /\.(jpg|jpeg|png|gif|webp)$/i.test(obj.Key))
             .map(obj => obj.Key!);
