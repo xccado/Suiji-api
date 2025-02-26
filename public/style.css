@@ -21,24 +21,24 @@ body {
     background-size: cover;
     background-position: center;
     transition: background-image 0.5s ease-in-out;
-    /* 使用 linear-gradient 叠加半透明颜色 */
-     background-image: linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)), var(--bg-image);
+    /* 调整这里的透明度值 */
+    background-image: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), var(--bg-image);
     z-index: -1;
 }
 
 .container {
-     /* 降低容器的透明度 */
-    background-color: rgba(255, 255, 255, 0.7);
+    /* 进一步降低容器的透明度 */
+    background-color: rgba(255, 255, 255, 0.5);
     padding: 3rem;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    max-width: 70%; /* 稍微缩小宽度 */
-    width: 550px;  /* 或者使用固定宽度 */
-    /* margin: 2rem auto;  或者添加外边距 */
+    max-width: 70%;
+    width: 550px;
     position: relative;
     z-index: 1;
 }
 
+/* 其余样式保持不变 */
 h1 {
     color: #2c3e50;
     margin-bottom: 0.5rem;
