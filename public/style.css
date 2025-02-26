@@ -9,7 +9,6 @@ body {
     align-items: center;
     min-height: 100vh;
     text-align: center;
-    /* overflow: hidden;  *//* 移除此行，允许滚动 */
 }
 
 /* 背景容器样式 */
@@ -21,9 +20,8 @@ body {
     height: 100%;
     background-size: cover;
     background-position: center;
-    z-index: -2;
-    /* filter: blur(5px); */  /* 移除或降低模糊度 */
-     transition: background-image 0.5s ease-in-out; /* 平滑过渡 */
+    z-index: -2; /*无需修改*/
+    transition: background-image 0.5s ease-in-out;
 }
 /* 单独对背景图片设置模糊 */
 .background-container::after {
@@ -34,8 +32,8 @@ body {
   width: 100%;
   height: 100%;
   background: inherit;
-  #filter: blur(3px); /* 调整模糊值*/
-  z-index: -1;
+  /*filter: blur(3px);*/
+  z-index: -1; /* 保持不变 */
 }
 /* 半透明遮罩层 */
 .overlay {
@@ -45,7 +43,7 @@ body {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.4);
-    z-index: -1;
+    /* z-index: -1;  删除此行 */
 }
 
 .container {
