@@ -8,21 +8,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 </head>
 <body>
+    <div class="background-container"></div>
+    <div class="overlay"></div>
     <div class="container">
         <h1 class="animate__animated animate__fadeInDown">欢迎使用随机图片 API</h1>
         <p class="animate__animated animate__fadeIn">点击下方按钮，立即获取精美图片！</p>
-        
+
         <button id="get-image-btn" class="animate__animated animate__pulse animate__infinite">获取图片</button>
-        
+
         <div id="image-container"></div>
-        
+
         <div id="api-info" class="animate__animated animate__fadeInUp">
-             <h2>API 使用说明</h2>
+            <h2>API 使用说明</h2>
             <p>
                 您可以通过以下 URL 直接访问 API，获取随机图片：
             </p>
             <pre><code><span id="api-url"></span></code></pre>
-            
+
             <p>在您的网站或应用中，可以使用 `&lt;img&gt;` 标签来显示图片：</p>
             <pre><code class="html-code">&lt;img src="<span id="api-url-example"></span>" alt="Random Image"&gt;</code></pre>
              <p>
@@ -36,41 +38,63 @@
         const imageContainer = document.getElementById('image-container');
         const apiUrl = document.getElementById('api-url');
         const apiUrlExample = document.getElementById('api-url-example');
-        const baseUrl = window.location.origin;  // 获取当前网站的根 URL
+        const backgroundContainer = document.querySelector('.background-container'); // 获取背景容器
+        const baseUrl = window.location.origin;
         const apiEndpoint = '/api/random';
         const fullApiUrl = baseUrl + apiEndpoint;
-        
+
         apiUrl.textContent = fullApiUrl;
         apiUrlExample.textContent = fullApiUrl;
 
+        // 函数：设置背景图片
+        async function setBackgroundImage() {
+            try {
+                const response = await fetch(apiEndpoint);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    backgroundContainer.style.backgroundImage = `url(${imageUrl})`;
+                } else {
+                    console.error('Failed to fetch background image');
+                }
+            } catch (error) {
+                console.error('Error fetching background image:', error);
+            }
+        }
+
+        // 函数：获取并显示图片
         async function getRandomImage() {
-          getImgBtn.classList.remove("animate__pulse", "animate__infinite"); //先删掉无限抖动
-          getImgBtn.classList.add('animate__animated', 'animate__jello'); // 获取时给个jello效果
-          imageContainer.innerHTML = '<p class="loading">Loading...</p>'; // 显示加载提示
+            getImgBtn.classList.remove("animate__pulse", "animate__infinite");
+            getImgBtn.classList.add('animate__animated', 'animate__jello');
+            imageContainer.innerHTML = '<p class="loading">Loading...</p>';
 
-          try {
-              const response = await fetch(apiEndpoint);
-              getImgBtn.classList.remove('animate__jello'); // 移除效果
-              getImgBtn.classList.add("animate__pulse", "animate__infinite"); // 重新加回
+            try {
+                const response = await fetch(apiEndpoint);
+                getImgBtn.classList.remove('animate__jello');
+                getImgBtn.classList.add("animate__pulse", "animate__infinite");
 
-              if (response.ok) {
-                const blob = await response.blob();
-                const imageUrl = URL.createObjectURL(blob);
-                  imageContainer.innerHTML = `<img src="${imageUrl}" alt="Random Image" class="random-image">`;  // 添加 class
-              }
-               else if(response.redirected){
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    imageContainer.innerHTML = `<img src="${imageUrl}" alt="Random Image" class="random-image">`;
+                } else if (response.redirected) {
                     window.location.href = response.url;
                 }else {
-                  const errorData = await response.json();
-                  imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`; //显示错误信息。
-              }
-          } catch (error) {
-              console.error('Error fetching image:', error);
-              imageContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`; //显示错误信息。
-          }        
-        }      
-                
+                    const errorData = await response.json();
+                   imageContainer.innerHTML = `<p class="error">Error: ${errorData.message}</p>`;
+                }
+            } catch (error) {
+                console.error('Error fetching image:', error);
+                imageContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+
         getImgBtn.addEventListener('click', getRandomImage);
+
+        // 首次加载时设置背景图片
+        setBackgroundImage();
+          // 添加一个定时器，每隔一段时间更换背景图片（例如，每 30 秒）
+         setInterval(setBackgroundImage, 30000);
     </script>
 </body>
 </html>
