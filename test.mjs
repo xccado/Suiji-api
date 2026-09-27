@@ -131,7 +131,74 @@ assert.equal(stats.pc, 2, "pc count (a.jpg + b.png, ignore.txt excluded)");
 assert.equal(stats.mobile, 1, "mobile count");
 console.log("[PASS] /api/stats ->", JSON.stringify(stats));
 
-console.log("\n=== ALL 11 TESTS PASSED ===");
+// --- 12. 限速：/img 超过 RATE_LIMIT_IMG 后 429，带 Retry-After；不同 IP 互不影响 ---
+const mf3 = new Miniflare({
+  workers: [{
+    name: "suiji-rl",
+    modules: [{ type: "ESModule", path: "./worker.js" }],
+    compatibilityDate: "2025-09-01",
+    r2Buckets: ["BUCKET"],
+    bindings: { PC_DIR: "pc", MOBILE_DIR: "mobile", RATE_LIMIT_IMG: "3", RATE_LIMIT_RANDOM: "0", RATE_LIMIT_WINDOW: "60" },
+  }],
+});
+const rlCall = (path, ip) =>
+  mf3.dispatchFetch("https://example.com" + path, { headers: { "cf-connecting-ip": ip }, redirect: "manual" });
+
+const bucket3 = await mf3.getR2Bucket("BUCKET");
+await bucket3.put("pc/a.jpg", PNG_1x1);
+await bucket3.put("mobile/m1.webp", PNG_1x1);
+
+for (let i = 1; i <= 3; i++) {
+  res = await rlCall("/img/pc/a.jpg", "1.2.3.4");
+  assert.equal(res.status, 200, `img req #${i} should pass`);
+}
+res = await rlCall("/img/pc/a.jpg", "1.2.3.4");
+assert.equal(res.status, 429, "img req #4 must be limited");
+const rlBody = await res.json();
+assert.equal(rlBody.error, "rate_limited");
+const retryAfter = parseInt(res.headers.get("retry-after"), 10);
+assert.ok(retryAfter >= 1 && retryAfter <= 60, "Retry-After in (0,60], got " + retryAfter);
+console.log("[PASS] /img 3 reqs OK then 429 rate_limited, Retry-After present");
+
+// 限速关闭（RATE_LIMIT_RANDOM=0）时不拦
+for (let i = 0; i < 8; i++) {
+  res = await rlCall("/api/random", "1.2.3.4");
+  assert.equal(res.status, 302, "rate limit disabled for /api/random");
+}
+console.log("[PASS] RATE_LIMIT_RANDOM=0 -> /api/random unlimited");
+
+// 其他 IP 不受影响
+res = await rlCall("/img/pc/a.jpg", "5.6.7.8");
+assert.equal(res.status, 200, "different IP unaffected");
+console.log("[PASS] other IP unaffected");
+
+// --- 13. 限速：/api/random 超过 RATE_LIMIT_RANDOM 后 429 ---
+const mf4 = new Miniflare({
+  workers: [{
+    name: "suiji-rl2",
+    modules: [{ type: "ESModule", path: "./worker.js" }],
+    compatibilityDate: "2025-09-01",
+    r2Buckets: ["BUCKET"],
+    bindings: { PC_DIR: "pc", MOBILE_DIR: "mobile", RATE_LIMIT_RANDOM: "2", RATE_LIMIT_WINDOW: "60" },
+  }],
+});
+const rl2Call = (path) =>
+  mf4.dispatchFetch("https://example.com" + path, { headers: { "cf-connecting-ip": "9.9.9.9" }, redirect: "manual" });
+const bucket4 = await mf4.getR2Bucket("BUCKET");
+await bucket4.put("pc/a.jpg", PNG_1x1);
+await bucket4.put("mobile/m1.webp", PNG_1x1);
+await rl2Call("/api/random");
+await rl2Call("/api/random");
+res = await rl2Call("/api/random");
+assert.equal(res.status, 429, "random req #3 must be limited");
+// 429 后 /img 仍可用（独立计数）
+res = await rl2Call("/img/pc/a.jpg");
+assert.equal(res.status, 200, "img endpoint counted separately");
+console.log("[PASS] /api/random 2 reqs OK then 429; /img counted independently");
+
+console.log("\n=== ALL 13 TESTS PASSED ===");
 await mf.dispose();
 await mf2.dispose();
+await mf3.dispose();
+await mf4.dispose();
 process.exit(0);

@@ -5,6 +5,7 @@
 //   GET /api/random      随机图片：默认 302 跳转到 /img/<key>；?format=json 返回 JSON；?dir=pc|mobile 强制指定目录
 //   GET /api/stats       两目录收录图片数量
 //   GET /img/<key>       从 R2 代理图片（边缘缓存，仅允许已配置目录下的图片扩展名）
+// 防频繁下载：/api/random 与 /img/* 按 IP 限速（固定窗口，超限返回 429，可用变量关闭/调整）
 
 const IMAGE_RE = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
 const MIME = {
@@ -51,6 +52,77 @@ function json(data, status = 200) {
       "Cache-Control": "no-store",
     },
   });
+}
+
+// ---------- 防频繁下载（按 IP 固定窗口限速） ----------
+// Workers 多 isolate 没有单点内存可用，用两层计数尽量逼近精确值：
+//   1) per-isolate 内存 Map（同一 isolate 内精确）
+//   2) Cache API 计数器（同一边缘节点/colo 内跨 isolate 共享，键 /__rl/<scope>/<ip>/<窗口号>）
+// 取两者最大值再 +1，抵消并发竞争造成的漏计。限速按边缘节点粒度尽力而为，
+// 拦暴力爬图足够；如需全局精确限速可再加 Durable Object。
+const rlMem = new Map(); // "scope:ip:windowIdx" -> count
+
+function clientIP(request) {
+  return request.headers.get("cf-connecting-ip")
+    || (request.headers.get("x-forwarded-for") || "").split(",")[0].trim()
+    || "unknown";
+}
+
+function intVar(env, name, def) {
+  const n = parseInt((env && env[name]) || "", 10);
+  return Number.isFinite(n) && n >= 0 ? n : def;
+}
+
+async function checkRateLimit(env, request, url, scope) {
+  const limit = intVar(env, scope === "random" ? "RATE_LIMIT_RANDOM" : "RATE_LIMIT_IMG", scope === "random" ? 30 : 60);
+  const windowSec = intVar(env, "RATE_LIMIT_WINDOW", 60);
+  if (!limit) return null; // 0 = 关闭该端点限速
+
+  const nowMs = Date.now();
+  const wIdx = Math.floor(nowMs / (windowSec * 1000));
+  const resetSec = Math.max(1, Math.ceil(((wIdx + 1) * windowSec * 1000 - nowMs) / 1000));
+  const ip = clientIP(request);
+
+  // 内存层
+  const memKey = scope + ":" + ip + ":" + wIdx;
+  const memPrev = rlMem.get(memKey) || 0;
+
+  // Cache 层
+  let cachePrev = 0;
+  const cacheKey = new URL(url.origin + "/__rl/" + scope + "/" + ip + "/" + wIdx);
+  try {
+    const hit = await caches.default.match(cacheKey);
+    if (hit) cachePrev = (await hit.json()).n || 0;
+  } catch { /* 本地 dev 可能无 caches */ }
+
+  const n = Math.max(memPrev, cachePrev) + 1;
+  rlMem.set(memKey, n);
+  if (rlMem.size > 10000) { // 防内存泄漏：清理已过期的窗口计数
+    for (const k of rlMem.keys()) {
+      if (Number(k.split(":").pop()) < wIdx) rlMem.delete(k);
+    }
+  }
+  try {
+    await caches.default.put(cacheKey, new Response(JSON.stringify({ n }), {
+      headers: { "Cache-Control": "public, max-age=" + resetSec },
+    }));
+  } catch { /* ignore */ }
+
+  if (n > limit) {
+    return new Response(
+      JSON.stringify({ error: "rate_limited", message: "请求过于频繁，请稍后再试", limit, window: windowSec }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Retry-After": String(resetSec),
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+  return null;
 }
 
 // ---------- 内嵌首页 ----------
@@ -287,6 +359,10 @@ print(data['url'], data['key'])</code><button class="copy-btn" data-copy-prev>�
       <code>设备自适应</code>
       <span class="desc">不带参数时，手机访问返回移动目录、电脑访问返回桌面目录，无需任何配置</span>
     </div>
+    <div class="param-item">
+      <code>防频繁下载</code>
+      <span class="desc">每个 IP 每分钟最多 30 次 /api/random、60 次 /img/ 请求，超限返回 429 并提示稍后再试；正常浏览网页/换壁纸完全不受影响</span>
+    </div>
   </section>
 
   <footer>
@@ -410,8 +486,16 @@ export default {
         return json({ pc: pc.length, mobile: mobile.length });
       }
 
+      // ---- 防频繁下载限速（/api/random 与 /img/*） ----
+      const isRandom = url.pathname === "/api/random";
+      const isImg = /^\/img\/(.+)$/.test(url.pathname);
+      if (isRandom || isImg) {
+        const limited = await checkRateLimit(env, request, url, isRandom ? "random" : "img");
+        if (limited) return limited;
+      }
+
       // ---- 随机图片 ----
-      if (url.pathname === "/api/random") {
+      if (isRandom) {
         const dirOverride = url.searchParams.get("dir");
         const dir =
           dirOverride === "pc" || dirOverride === "mobile"

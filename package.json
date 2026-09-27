@@ -13,7 +13,12 @@
     "type": "git",
     "url": "git+https://github.com/xccado/Suiji-api.git"
   },
-  "keywords": ["cloudflare-workers", "r2", "random-image", "api"],
+  "keywords": [
+    "cloudflare-workers",
+    "r2",
+    "random-image",
+    "api"
+  ],
   "author": "xccado",
   "license": "MIT",
   "bugs": {

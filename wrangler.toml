@@ -15,3 +15,8 @@ compatibility_date = "2025-09-01"
 # PC_DIR = "pc"           # 桌面端图片目录
 # MOBILE_DIR = "mobile"   # 移动端图片目录
 # LIST_CACHE_TTL = "300"  # 目录列表缓存秒数
+#
+# 防频繁下载（按 IP 限速，设 0 可关闭对应端点）
+# RATE_LIMIT_RANDOM = "30"   # /api/random 每 IP 每 RATE_LIMIT_WINDOW 秒最多请求次数
+# RATE_LIMIT_IMG    = "60"   # /img/* 每 IP 每窗口最多请求次数
+# RATE_LIMIT_WINDOW = "60"   # 限速窗口（秒）

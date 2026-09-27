@@ -10,6 +10,7 @@
 * **边缘缓存**：图片经 Worker 代理输出并写入 Cache API，重复请求命中 Cloudflare 边缘节点
 * **目录列表缓存**：TTL 内存缓存，不用每次请求都扫桶（原来每次请求都调 S3 listObjectsV2）
 * **设备自适应**：自动检测 User-Agent，返回 `pc/` 或 `mobile/` 目录的图片，也可用 `?dir=` 强制指定
+* **防频繁下载**：按 IP 限速（默认 `/api/random` 30 次/分、`/img/` 60 次/分），超限返回 429，可用环境变量调整或关闭
 * **单文件部署**：首页 HTML/CSS 全部内嵌在 worker 里，无静态资源依赖
 * **JSON 模式**：`?format=json` 返回图片直链，方便程序化调用
 
@@ -66,6 +67,11 @@ dash → Workers & Pages → `suiji-api` → Settings → Domains & Routes → A
 | `PC_DIR` | `pc` | 桌面端图片目录 |
 | `MOBILE_DIR` | `mobile` | 移动端图片目录 |
 | `LIST_CACHE_TTL` | `300` | 目录列表缓存秒数 |
+| `RATE_LIMIT_RANDOM` | `30` | `/api/random` 每窗口每 IP 请求上限，`0` 关闭 |
+| `RATE_LIMIT_IMG` | `60` | `/img/*` 每窗口每 IP 请求上限，`0` 关闭 |
+| `RATE_LIMIT_WINDOW` | `60` | 限速窗口（秒） |
+
+> 限速基于 Cloudflare 边缘节点计数（尽力而为，按 IP 固定窗口），足以拦截暴力爬图；如需全局精确限速可自行加 Durable Object。
 
 ## 项目结构
 
