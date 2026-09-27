@@ -1,0 +1,26 @@
+{
+  "name": "suiji-api",
+  "version": "2.0.0",
+  "description": "随机图片 API — Cloudflare Workers + R2 原生绑定",
+  "main": "worker.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xccado/Suiji-api.git"
+  },
+  "keywords": ["cloudflare-workers", "r2", "random-image", "api"],
+  "author": "xccado",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xccado/Suiji-api/issues"
+  },
+  "homepage": "https://github.com/xccado/Suiji-api#readme",
+  "devDependencies": {
+    "miniflare": "^4.20260730.0"
+  }
+}
