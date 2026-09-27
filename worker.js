@@ -125,127 +125,273 @@ async function checkRateLimit(env, request, url, scope) {
   return null;
 }
 
-// ---------- 内嵌首页 ----------
+// ---------- 内嵌首页（科技感 v2：深空暗色 + 粒子网络 + HUD + 终端风） ----------
 const CSS = `
 :root {
-  --bg: #f6f7f9; --card: rgba(255,255,255,.82); --border: rgba(0,0,0,.08);
-  --text: #1f2937; --muted: #6b7280; --code-bg: #f3f4f6; --code-text: #374151;
-  --accent: #f6821f; --accent-weak: rgba(246,130,31,.12);
-  --shadow: 0 8px 24px rgba(0,0,0,.08);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1115; --card: rgba(21,23,29,.85); --border: rgba(255,255,255,.1);
-    --text: #e5e7eb; --muted: #9ca3af; --code-bg: #1a1d24; --code-text: #d1d5db;
-    --shadow: 0 8px 24px rgba(0,0,0,.4);
-  }
+  --bg: #04060c;
+  --panel: rgba(10, 17, 32, .78);
+  --text: #dce7f5;
+  --muted: #7c8ca5;
+  --dim: #4d5b72;
+  --accent: #27e0ff;
+  --accent-dim: rgba(39, 224, 255, .12);
+  --violet: #8b7cff;
+  --border: rgba(39, 224, 255, .16);
+  --border-hi: rgba(39, 224, 255, .45);
+  --code-bg: rgba(5, 10, 19, .92);
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --sans: 'Space Grotesk', 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  margin: 0; padding: 1.25rem 1rem 3rem;
-  background: var(--bg); color: var(--text);
+  font-family: var(--sans);
+  margin: 0; padding: 0 1rem 3rem;
+  background:
+    radial-gradient(1100px 500px at 80% -10%, rgba(124, 108, 255, .14), transparent 60%),
+    radial-gradient(900px 460px at 12% -6%, rgba(39, 224, 255, .10), transparent 60%),
+    var(--bg);
+  color: var(--text);
   min-height: 100vh;
+  overflow-x: hidden;
 }
-.background-container {
-  position: fixed; inset: 0; z-index: -2;
+.mono { font-family: var(--mono); }
+
+/* ---- 背景层：粒子画布 / 壁纸 / 网格 / 扫描光束 ---- */
+#net { position: fixed; inset: 0; z-index: -4; pointer-events: none; }
+#bgwrap { position: fixed; inset: 0; z-index: -3; overflow: hidden; }
+.bgimg {
+  position: absolute; inset: 0;
   background-size: cover; background-position: center;
-  transition: background-image .6s;
-  background-image: var(--bg-image);
+  opacity: 0; transition: opacity 1.4s ease;
+  filter: blur(3px) saturate(1.25) brightness(.65);
 }
-.background-container::after {
+.bgimg.on { opacity: .45; animation: kenburns 26s ease-in-out infinite alternate; }
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.1); } }
+#bgwrap::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.35));
+  background: linear-gradient(180deg, rgba(4, 6, 12, .45), rgba(4, 6, 12, .9));
 }
-@media (prefers-color-scheme: dark) {
-  .background-container::after { background: rgba(15,17,21,.55); }
+#grid {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(39, 224, 255, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(39, 224, 255, .06) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 18%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 18%, #000 30%, transparent 75%);
 }
-.wrap { max-width: 760px; margin: 0 auto; }
+#beam {
+  position: fixed; left: 0; right: 0; top: -160px; height: 160px;
+  z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(39, 224, 255, .045) 45%, rgba(39, 224, 255, .12) 50%, rgba(39, 224, 255, .045) 55%, transparent);
+  animation: beam 11s linear infinite;
+}
+@keyframes beam { to { transform: translateY(calc(100vh + 340px)); } }
+
+.wrap { max-width: 800px; margin: 0 auto; }
+
+/* ---- 顶栏 ---- */
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.1rem .2rem;
+  font-family: var(--mono); font-size: .8rem; letter-spacing: .1em;
+}
+.brand { color: var(--accent); font-weight: 600; }
+.brand .cur { animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.badge { color: var(--muted); display: flex; align-items: center; gap: .45rem; }
+.badge .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #3dffa0; box-shadow: 0 0 8px #3dffa0;
+  animation: pulse 2.2s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: .35; } }
+
+/* ---- HUD 角标 ---- */
+.hud { position: relative; }
+.hud::before, .hud::after, .c2::before, .c2::after {
+  content: ''; position: absolute; width: 20px; height: 20px;
+  border: 2px solid var(--border-hi); pointer-events: none;
+}
+.hud::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.hud::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+.c2 { position: absolute; inset: 0; pointer-events: none; }
+.c2::before { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.c2::after { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+
+/* ---- Hero ---- */
 .hero {
-  background: var(--card); backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: 18px;
-  box-shadow: var(--shadow);
-  padding: 2.5rem 1.75rem 2rem; text-align: center;
+  background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 12px 44px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255,255,255,.04);
+  border-radius: 6px;
+  padding: 2.6rem 2rem 2.2rem; text-align: center; margin-top: .6rem;
 }
-.hero h1 { margin: 0 0 .4rem; font-size: 1.75rem; letter-spacing: .5px; }
-.hero .sub { color: var(--muted); margin: 0 0 1rem; font-size: 1rem; }
-.hero .stats { color: var(--muted); font-size: .85rem; margin: 0 0 1.25rem; }
-.hero .stats b { color: var(--text); font-weight: 600; }
+.hero h1 {
+  margin: 0 0 .6rem;
+  font-size: clamp(1.9rem, 5.4vw, 3rem); font-weight: 700; letter-spacing: .04em;
+  background: linear-gradient(110deg, #f2fbff 10%, var(--accent) 38%, var(--violet) 62%, #f2fbff 92%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: flow 7s linear infinite;
+  filter: drop-shadow(0 0 22px rgba(39, 224, 255, .3));
+}
+@keyframes flow { to { background-position: -220% 0; } }
+.hero .sub {
+  font-family: var(--mono); color: var(--dim); font-size: .78rem;
+  letter-spacing: .22em; margin: 0 0 1.1rem;
+}
+.hero .stats {
+  font-family: var(--mono); color: var(--muted); font-size: .82rem;
+  letter-spacing: .08em; margin: 0 0 1.6rem;
+}
+.hero .stats b { color: var(--accent); font-weight: 600; }
+
 .btn {
-  display: inline-block; background: var(--accent); color: #fff;
-  border: none; border-radius: 12px; cursor: pointer;
-  padding: .85rem 2.4rem; font-size: 1.05rem; font-weight: 600;
-  transition: transform .15s, box-shadow .15s;
+  display: inline-block; position: relative; overflow: hidden;
+  background: linear-gradient(160deg, #0c1a2e, #0a2438);
+  color: var(--accent); border: 1px solid var(--border-hi); border-radius: 6px;
+  cursor: pointer; padding: .85rem 2.6rem;
+  font-family: var(--mono); font-size: 1rem; font-weight: 600; letter-spacing: .14em;
+  box-shadow: 0 0 18px rgba(39, 224, 255, .18), inset 0 0 14px rgba(39, 224, 255, .06);
+  transition: transform .16s, box-shadow .16s, border-color .16s;
 }
-.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(246,130,31,.45); }
+.btn:hover {
+  transform: translateY(-2px); border-color: var(--accent);
+  box-shadow: 0 0 34px rgba(39, 224, 255, .4), inset 0 0 20px rgba(39, 224, 255, .12);
+}
 .btn:active { transform: translateY(0); }
-#image-container { margin-top: 1.5rem; min-height: 0; }
-#image-container .loading { color: var(--muted); }
-.random-image {
-  max-width: 100%; max-height: 70vh; height: auto;
-  border-radius: 14px; border: 1px solid var(--border);
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-  animation: fadeIn .35s ease;
+.btn::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -80%; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(160, 245, 255, .22), transparent);
+  transform: skewX(-20deg); transition: left .55s ease;
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
-.img-actions { margin-top: .8rem; font-size: .9rem; color: var(--muted); }
-.img-actions a { color: var(--accent); text-decoration: none; }
+.btn:hover::after { left: 135%; }
+
+#image-container { margin-top: 1.6rem; min-height: 0; }
+#image-container .loading { color: var(--dim); font-family: var(--mono); font-size: .85rem; letter-spacing: .18em; }
+#image-container .loading .dots::after { content: ''; animation: dots 1.2s steps(4) infinite; }
+@keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+.img-frame { position: relative; display: inline-block; max-width: 100%; }
+.random-image {
+  display: block; max-width: 100%; max-height: 68vh; height: auto;
+  border: 1px solid var(--border); border-radius: 4px;
+  box-shadow: 0 0 30px rgba(39, 224, 255, .14), 0 14px 40px rgba(0, 0, 0, .55);
+  animation: reveal .65s cubic-bezier(.2, .8, .3, 1) both;
+}
+@keyframes reveal {
+  from { opacity: 0; filter: blur(12px); transform: translateY(14px) scale(.97); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+.sweep {
+  position: absolute; left: 0; right: 0; top: -8%; height: 16%; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(39, 224, 255, .28) 48%, rgba(220, 250, 255, .8) 50%, rgba(39, 224, 255, .28) 52%, transparent);
+  mix-blend-mode: screen; opacity: 0;
+  animation: sweep 1.1s ease-out .12s both;
+}
+@keyframes sweep { 0% { top: -12%; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+.img-actions { margin-top: .8rem; font-size: .8rem; font-family: var(--mono); color: var(--dim); }
+.img-actions a { color: var(--accent); text-decoration: none; letter-spacing: .06em; }
+.img-actions a:hover { text-shadow: 0 0 10px rgba(39, 224, 255, .6); }
+
+/* ---- 卡片 ---- */
 section.card {
-  background: var(--card); backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: 18px;
-  box-shadow: var(--shadow);
-  padding: 1.6rem 1.5rem; margin-top: 1.25rem;
+  position: relative;
+  background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255,255,255,.03);
+  padding: 1.5rem 1.5rem; margin-top: 1.3rem;
 }
 section.card > h2 {
-  font-size: 1.15rem; margin: 0 0 1rem;
-  display: flex; align-items: center; gap: .5rem;
+  font-family: var(--mono); font-size: .88rem; font-weight: 600; margin: 0 0 1.1rem;
+  letter-spacing: .18em; color: var(--text);
+  display: flex; align-items: center; gap: .6rem;
 }
-section.card > h2 .dot {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
-  display: inline-block; flex: none;
-}
+section.card > h2 .tick { color: var(--accent); }
+
 .endpoint-box {
   display: flex; align-items: center; gap: .75rem;
   background: var(--code-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: .7rem .9rem;
+  border-radius: 4px; padding: .75rem .9rem;
 }
-.endpoint-box code { flex: 1; word-break: break-all; font-size: .9rem; color: var(--code-text); }
+.endpoint-box code {
+  flex: 1; word-break: break-all; font-family: var(--mono); font-size: .9rem;
+  color: var(--accent); text-shadow: 0 0 12px rgba(39, 224, 255, .35);
+}
+.endpoint-box::before {
+  content: '>'; color: var(--dim); font-family: var(--mono); flex: none;
+}
+
 .copy-btn {
   flex: none; background: transparent; color: var(--muted);
-  border: 1px solid var(--border); border-radius: 8px;
-  padding: .3rem .7rem; font-size: .82rem; cursor: pointer;
-  transition: color .15s, border-color .15s;
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: .32rem .8rem; font-family: var(--mono); font-size: .74rem;
+  letter-spacing: .12em; cursor: pointer;
+  transition: color .15s, border-color .15s, box-shadow .15s;
 }
-.copy-btn:hover { color: var(--text); }
-.copy-btn.copied { color: #27ae60; border-color: #27ae60; }
-.example { margin-bottom: 1.4rem; }
+.copy-btn:hover { color: var(--accent); border-color: var(--border-hi); box-shadow: 0 0 12px rgba(39, 224, 255, .18); }
+.copy-btn.copied { color: #3dffa0; border-color: rgba(61, 255, 160, .5); }
+
+.example { margin-bottom: 1.35rem; }
 .example:last-child { margin-bottom: 0; }
-.example h3 { font-size: .95rem; margin: 0 0 .5rem; color: var(--text); }
-.example h3 span { color: var(--muted); font-weight: 400; font-size: .85rem; }
-pre.code {
-  position: relative; margin: 0;
-  background: var(--code-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: .85rem 3.8rem .85rem 1rem;
-  overflow-x: auto; font-size: .84rem; line-height: 1.65;
+.example h3 {
+  font-family: var(--mono); font-size: .8rem; margin: 0 0 .55rem; color: var(--text); letter-spacing: .06em;
 }
-pre.code code { font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace; color: var(--code-text); white-space: pre; }
-pre.code .copy-btn { position: absolute; top: .5rem; right: .5rem; }
-.param-item { display: flex; gap: .75rem; padding: .55rem 0; border-bottom: 1px dashed var(--border); font-size: .92rem; }
+.example h3 span { color: var(--dim); font-weight: 400; font-size: .72rem; }
+.term { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; position: relative; }
+.term-head {
+  display: flex; align-items: center; gap: .45rem;
+  padding: .5rem .8rem; border-bottom: 1px solid var(--border);
+  background: rgba(39, 224, 255, .03);
+}
+.term-head .t { width: 9px; height: 9px; border-radius: 50%; opacity: .75; }
+.term-head .t:nth-child(1) { background: #ff5f56; }
+.term-head .t:nth-child(2) { background: #ffbd2e; }
+.term-head .t:nth-child(3) { background: #27c93f; }
+.term-head .term-title {
+  margin-left: auto; font-family: var(--mono); font-size: .68rem;
+  color: var(--dim); letter-spacing: .14em;
+}
+pre.code { margin: 0; position: relative; padding: .9rem 4.2rem .9rem 1rem; overflow-x: auto; }
+pre.code code {
+  font-family: var(--mono); font-size: .82rem; line-height: 1.7;
+  color: #a9c3d9; white-space: pre;
+}
+pre.code .api-url { color: var(--accent); }
+pre.code .copy-btn { position: absolute; top: .55rem; right: .55rem; }
+
+.param-item {
+  display: flex; gap: .85rem; padding: .6rem 0;
+  border-bottom: 1px dashed rgba(39, 224, 255, .1); font-size: .88rem;
+}
 .param-item:last-child { border-bottom: none; }
 .param-item code:first-child {
-  flex: none; min-width: 7.5rem; font-size: .84rem;
-  background: var(--accent-weak); color: var(--accent);
-  border-radius: 6px; padding: .15rem .5rem; height: fit-content;
+  flex: none; min-width: 8.2rem; font-family: var(--mono); font-size: .78rem;
+  background: var(--accent-dim); color: var(--accent);
+  border: 1px solid rgba(39, 224, 255, .2);
+  border-radius: 3px; padding: .18rem .55rem; height: fit-content;
 }
 .param-item .desc { color: var(--muted); }
-footer { text-align: center; color: var(--muted); font-size: .82rem; margin-top: 1.5rem; }
-footer a { color: var(--muted); }
-@media (max-width: 520px) {
-  .hero { padding: 2rem 1.25rem 1.6rem; }
-  .hero h1 { font-size: 1.4rem; }
-  section.card { padding: 1.3rem 1.1rem; }
-  .param-item { flex-direction: column; gap: .3rem; }
+.param-item .desc code { color: var(--accent); font-family: var(--mono); font-size: .8em; }
+
+footer {
+  text-align: center; font-family: var(--mono); color: var(--dim);
+  font-size: .72rem; letter-spacing: .16em; margin-top: 2rem;
+}
+footer a { color: var(--muted); text-decoration: none; }
+footer a:hover { color: var(--accent); }
+
+@media (max-width: 560px) {
+  .hero { padding: 2rem 1.2rem 1.7rem; }
+  section.card { padding: 1.25rem 1.05rem; }
+  .param-item { flex-direction: column; gap: .35rem; }
+  .topbar { font-size: .68rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bgimg.on, .hero h1, #beam, .brand .cur, .badge .dot, .btn::after, .sweep { animation: none !important; }
+  .random-image { animation: none !important; }
+  * { transition: none !important; }
 }
 `;
 
@@ -256,78 +402,109 @@ const HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="随机图片 API — Cloudflare Workers + R2，设备自适应，免费调用">
 <title>随机图片 API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>${CSS}</style>
 </head>
 <body>
-<div class="background-container"></div>
+<canvas id="net"></canvas>
+<div id="bgwrap"><div class="bgimg" id="bg0"></div><div class="bgimg" id="bg1"></div></div>
+<div id="grid"></div>
+<div id="beam"></div>
 <div class="wrap">
 
-  <div class="hero">
+  <header class="topbar">
+    <div class="brand">SUIJI://API<span class="cur">▌</span></div>
+    <div class="badge"><span class="dot"></span>EDGE&nbsp;ONLINE</div>
+  </header>
+
+  <div class="hero hud"><i class="c2"></i>
     <h1>随机图片 API</h1>
-    <p class="sub">每次请求返回一张随机图片 · 自动识别设备 · Cloudflare 边缘加速</p>
-    <p class="stats">已收录 <b id="stat-pc">…</b> 张桌面壁纸 · <b id="stat-mobile">…</b> 张移动壁纸</p>
-    <button id="get-image-btn" class="btn">随机来一张</button>
+    <p class="sub">// DEVICE-ADAPTIVE RANDOM IMAGE SERVICE</p>
+    <p class="stats">PC <b id="stat-pc">···</b> &nbsp;·&nbsp; MOBILE <b id="stat-mobile">···</b> &nbsp;·&nbsp; TOTAL <b id="stat-total">···</b></p>
+    <button id="get-image-btn" class="btn">⟳ 随机来一张</button>
     <div id="image-container"></div>
   </div>
 
-  <section class="card">
-    <h2><span class="dot"></span>接口地址</h2>
+  <section class="card hud"><i class="c2"></i>
+    <h2><span class="tick">▸</span>ENDPOINT / 接口地址</h2>
     <div class="endpoint-box">
-      <code class="api-url"></code>
-      <button class="copy-btn" data-copy=".api-url">复制</button>
+      <code class="api-url" id="hero-url"></code>
+      <button class="copy-btn" data-copy="#hero-url">复制</button>
     </div>
   </section>
 
-  <section class="card">
-    <h2><span class="dot"></span>调用方式</h2>
+  <section class="card hud"><i class="c2"></i>
+    <h2><span class="tick">▸</span>USAGE / 调用方式</h2>
 
     <div class="example">
-      <h3>1 · 浏览器直接打开 <span>— 返回 302 重定向到图片</span></h3>
-      <pre class="code"><code class="api-url"></code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      <h3>01 · 浏览器直接打开 <span>— 返回 302 重定向到图片</span></h3>
+      <div class="term">
+        <div class="term-head"><span class="t"></span><span class="t"></span><span class="t"></span><span class="term-title">BASH</span></div>
+        <pre class="code"><code><span class="api-url"></span></code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      </div>
     </div>
 
     <div class="example">
-      <h3>2 · HTML 图片标签 <span>— 网页里最常用的方式</span></h3>
-      <pre class="code"><code>&lt;img src="<span class="api-url"></span>" alt="随机图片"&gt;</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      <h3>02 · HTML 图片标签 <span>— 网页里最常用的方式</span></h3>
+      <div class="term">
+        <div class="term-head"><span class="t"></span><span class="t"></span><span class="t"></span><span class="term-title">HTML</span></div>
+        <pre class="code"><code>&lt;img src="<span class="api-url"></span>" alt="随机图片"&gt;</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      </div>
     </div>
 
     <div class="example">
-      <h3>3 · CSS 背景 <span>— 每次刷新自动换背景</span></h3>
-      <pre class="code"><code>body {
+      <h3>03 · CSS 背景 <span>— 每次刷新自动换背景</span></h3>
+      <div class="term">
+        <div class="term-head"><span class="t"></span><span class="t"></span><span class="t"></span><span class="term-title">CSS</span></div>
+        <pre class="code"><code>body {
   background-image: url('<span class="api-url"></span>');
   background-size: cover;
   background-position: center;
 }</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      </div>
     </div>
 
     <div class="example">
-      <h3>4 · JavaScript <span>— 拿到图片直链后自行处理</span></h3>
-      <pre class="code"><code>fetch('<span class="api-url"></span>?format=json')
-  .then(r => r.json())
-  .then(d => {
-    console.log(d.url);   // 图片直链
-    console.log(d.key);   // 桶内路径
+      <h3>04 · JavaScript <span>— 拿到图片直链后自行处理</span></h3>
+      <div class="term">
+        <div class="term-head"><span class="t"></span><span class="t"></span><span class="t"></span><span class="term-title">JS</span></div>
+        <pre class="code"><code>fetch('<span class="api-url"></span>?format=json')
+  .then(r =&gt; r.json())
+  .then(d =&gt; {
+    console.log(d.url);    // 图片直链
+    console.log(d.key);    // 桶内路径
     console.log(d.folder); // pc 或 mobile
   });</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      </div>
     </div>
 
     <div class="example">
-      <h3>5 · Markdown <span>— 论坛、README 里直接引用</span></h3>
-      <pre class="code"><code>![随机图片](<span class="api-url"></span>)</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      <h3>05 · Markdown <span>— 论坛、README 里直接引用</span></h3>
+      <div class="term">
+        <div class="term-head"><span class="t"></span><span class="t"></span><span class="t"></span><span class="term-title">MD</span></div>
+        <pre class="code"><code>![随机图片](<span class="api-url"></span>)</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      </div>
     </div>
 
     <div class="example">
-      <h3>6 · 命令行 curl <span>— 下载图片 / 写壁纸轮换脚本</span></h3>
-      <pre class="code"><code># 直接下载一张随机图（-L 跟随重定向）
+      <h3>06 · 命令行 curl <span>— 下载图片 / 写壁纸轮换脚本</span></h3>
+      <div class="term">
+        <div class="term-head"><span class="t"></span><span class="t"></span><span class="t"></span><span class="term-title">SHELL</span></div>
+        <pre class="code"><code># 直接下载一张随机图（-L 跟随重定向）
 curl -L -o wallpaper.jpg '<span class="api-url"></span>'
 
 # 拿 JSON 直链
 curl '<span class="api-url"></span>?format=json'</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      </div>
     </div>
 
     <div class="example">
-      <h3>7 · Python <span>— 爬虫 / 机器人里使用</span></h3>
-      <pre class="code"><code>import requests
+      <h3>07 · Python <span>— 爬虫 / 机器人里使用</span></h3>
+      <div class="term">
+        <div class="term-head"><span class="t"></span><span class="t"></span><span class="t"></span><span class="term-title">PY</span></div>
+        <pre class="code"><code>import requests
 
 url = '<span class="api-url"></span>'
 
@@ -338,11 +515,12 @@ img = r.content
 # 或者拿直链信息
 data = requests.get(url + '?format=json').json()
 print(data['url'], data['key'])</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+      </div>
     </div>
   </section>
 
-  <section class="card">
-    <h2><span class="dot"></span>可选参数</h2>
+  <section class="card hud"><i class="c2"></i>
+    <h2><span class="tick">▸</span>PARAMS / 可选参数</h2>
     <div class="param-item">
       <code>?format=json</code>
       <span class="desc">不重定向，直接返回 JSON：<code>{ url, key, folder }</code>，方便程序解析</span>
@@ -366,35 +544,56 @@ print(data['url'], data['key'])</code><button class="copy-btn" data-copy-prev>�
   </section>
 
   <footer>
-    Powered by Cloudflare Workers + R2 ·
-    <a href="https://github.com/xccado/Suiji-api" target="_blank" rel="noopener">GitHub</a>
+    POWERED BY CLOUDFLARE WORKERS + R2 · <a href="https://github.com/xccado/Suiji-api" target="_blank" rel="noopener">GITHUB ↗</a>
   </footer>
 </div>
 
 <script>
 (function () {
+  var rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var fullApiUrl = location.origin + '/api/random';
   document.querySelectorAll('.api-url').forEach(function (el) { el.textContent = fullApiUrl; });
 
-  var btn = document.getElementById('get-image-btn');
-  var container = document.getElementById('image-container');
-  var bg = document.querySelector('.background-container');
+  // 打字机：接口地址逐字打出（ti 独立命名，避免与后面粒子循环的 var i 冲突）
+  var hero = document.getElementById('hero-url');
+  if (hero && !rm) {
+    var ti = 0;
+    hero.textContent = '';
+    (function type() {
+      if (ti <= fullApiUrl.length) {
+        hero.textContent = fullApiUrl.slice(0, ti++);
+        setTimeout(type, 26);
+      }
+    })();
+  }
 
-  // 收录统计
+  // 数字滚动统计
+  function countUp(id, target) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (rm) { el.textContent = String(target); return; }
+    var t0 = performance.now(), dur = 900;
+    (function step(t) {
+      var p = Math.min(1, (t - t0) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * e).toLocaleString();
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
   fetch('/api/stats').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
     if (!d) return;
-    var pc = document.getElementById('stat-pc'), mob = document.getElementById('stat-mobile');
-    if (pc) pc.textContent = d.pc;
-    if (mob) mob.textContent = d.mobile;
+    countUp('stat-pc', d.pc);
+    countUp('stat-mobile', d.mobile);
+    countUp('stat-total', d.pc + d.mobile);
   }).catch(function () {});
 
+  // 复制按钮
   function toast(btnEl, ok) {
     var old = btnEl.textContent;
-    btnEl.textContent = ok ? '已复制' : '失败';
+    btnEl.textContent = ok ? '已复制 ✓' : '失败';
     btnEl.classList.add('copied');
     setTimeout(function () { btnEl.textContent = old; btnEl.classList.remove('copied'); }, 1600);
   }
-
   document.querySelectorAll('.copy-btn').forEach(function (b) {
     b.addEventListener('click', function () {
       var text;
@@ -416,10 +615,18 @@ print(data['url'], data['key'])</code><button class="copy-btn" data-copy-prev>�
     });
   }
 
+  var btn = document.getElementById('get-image-btn');
+  var container = document.getElementById('image-container');
+
   btn.addEventListener('click', function () {
-    container.innerHTML = '<p class="loading">加载中…</p>';
+    container.innerHTML = '<p class="loading">SCANNING<span class="dots"></span></p>';
     fetchJson().then(function (d) {
       container.innerHTML = '';
+      var frame = document.createElement('div');
+      frame.className = 'img-frame';
+      var sweep = document.createElement('div');
+      sweep.className = 'sweep';
+      frame.appendChild(sweep);
       var img = new Image();
       img.className = 'random-image';
       img.alt = d.key;
@@ -431,28 +638,94 @@ print(data['url'], data['key'])</code><button class="copy-btn" data-copy-prev>�
         a.href = d.url;
         a.target = '_blank';
         a.rel = 'noopener';
-        a.textContent = '在新标签页打开原图';
+        a.textContent = '↗ ' + d.key;
         p.appendChild(a);
         container.appendChild(p);
       };
-      container.appendChild(img);
+      frame.appendChild(img);
+      container.appendChild(frame);
     }).catch(function (e) {
       container.innerHTML = '<p class="loading">加载失败：' + e.message + '</p>';
     });
   });
 
+  // 背景壁纸：随机图交叉淡入 + Ken Burns
+  var bgEls = [document.getElementById('bg0'), document.getElementById('bg1')];
+  var bgIdx = 0;
   function refreshBackground() {
     fetchJson().then(function (d) {
-      bg.style.backgroundImage = 'url(' + d.url + ')';
+      var next = bgEls[bgIdx], cur = bgEls[bgIdx ^ 1];
+      next.style.backgroundImage = 'url(' + d.url + ')';
+      next.classList.add('on');
+      cur.classList.remove('on');
+      bgIdx ^= 1;
     }).catch(function () {});
   }
-
   refreshBackground();
   setInterval(refreshBackground, 30000);
+
+  // 粒子网络背景
+  var canvas = document.getElementById('net');
+  if (canvas && !rm) {
+    var ctx = canvas.getContext('2d');
+    var W, H;
+    function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+    resize();
+    addEventListener('resize', resize);
+    var N = Math.min(85, Math.max(35, Math.floor(innerWidth / 18)));
+    var pts = [];
+    for (var i = 0; i < N; i++) {
+      pts.push({
+        x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+        vx: (Math.random() - .5) * .38, vy: (Math.random() - .5) * .38,
+        r: .8 + Math.random() * 1.4
+      });
+    }
+    var mouse = { x: -9999, y: -9999 };
+    addEventListener('mousemove', function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+    addEventListener('mouseleave', function () { mouse.x = -9999; mouse.y = -9999; });
+    var LINK = 130;
+    function frame() {
+      if (!document.hidden) {
+        ctx.clearRect(0, 0, W, H);
+        for (var i = 0; i < N; i++) {
+          var p = pts[i];
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < -20) p.x = W + 20; if (p.x > W + 20) p.x = -20;
+          if (p.y < -20) p.y = H + 20; if (p.y > H + 20) p.y = -20;
+        }
+        for (var i = 0; i < N; i++) {
+          var a = pts[i];
+          for (var j = i + 1; j < N; j++) {
+            var b = pts[j];
+            var dx = a.x - b.x, dy = a.y - b.y;
+            var d2 = dx * dx + dy * dy;
+            if (d2 < LINK * LINK) {
+              var al = (1 - Math.sqrt(d2) / LINK) * .32;
+              ctx.strokeStyle = 'rgba(39,224,255,' + al.toFixed(3) + ')';
+              ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            }
+          }
+          var dxm = a.x - mouse.x, dym = a.y - mouse.y;
+          var dm2 = dxm * dxm + dym * dym;
+          if (dm2 < 160 * 160) {
+            var alm = (1 - Math.sqrt(dm2) / 160) * .5;
+            ctx.strokeStyle = 'rgba(139,124,255,' + alm.toFixed(3) + ')';
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(39,224,255,.75)';
+          ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, 6.2832); ctx.fill();
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
 })();
 </script>
 </body>
 </html>`;
+
 
 function homepage() {
   return new Response(HTML, {
