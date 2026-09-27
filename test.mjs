@@ -123,7 +123,15 @@ const err = await res.json();
 assert.equal(err.error, "no images");
 console.log("[PASS] empty bucket -> 404 {error:'no images'}");
 
-console.log("\n=== ALL 10 TESTS PASSED ===");
+// --- 11. /api/stats 统计 ---
+res = await call("/api/stats");
+assert.equal(res.status, 200);
+const stats = await res.json();
+assert.equal(stats.pc, 2, "pc count (a.jpg + b.png, ignore.txt excluded)");
+assert.equal(stats.mobile, 1, "mobile count");
+console.log("[PASS] /api/stats ->", JSON.stringify(stats));
+
+console.log("\n=== ALL 11 TESTS PASSED ===");
 await mf.dispose();
 await mf2.dispose();
 process.exit(0);

@@ -3,6 +3,7 @@
 // 路由:
 //   GET /                首页（内嵌 HTML/CSS，单文件部署）
 //   GET /api/random      随机图片：默认 302 跳转到 /img/<key>；?format=json 返回 JSON；?dir=pc|mobile 强制指定目录
+//   GET /api/stats       两目录收录图片数量
 //   GET /img/<key>       从 R2 代理图片（边缘缓存，仅允许已配置目录下的图片扩展名）
 
 const IMAGE_RE = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
@@ -54,62 +55,126 @@ function json(data, status = 200) {
 
 // ---------- 内嵌首页 ----------
 const CSS = `
+:root {
+  --bg: #f6f7f9; --card: rgba(255,255,255,.82); --border: rgba(0,0,0,.08);
+  --text: #1f2937; --muted: #6b7280; --code-bg: #f3f4f6; --code-text: #374151;
+  --accent: #f6821f; --accent-weak: rgba(246,130,31,.12);
+  --shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115; --card: rgba(21,23,29,.85); --border: rgba(255,255,255,.1);
+    --text: #e5e7eb; --muted: #9ca3af; --code-bg: #1a1d24; --code-text: #d1d5db;
+    --shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+}
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0; padding: 1rem;
-  display: flex; justify-content: center; align-items: flex-start;
-  min-height: 100vh; text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  margin: 0; padding: 1.25rem 1rem 3rem;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh;
 }
 .background-container {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  position: fixed; inset: 0; z-index: -2;
   background-size: cover; background-position: center;
-  z-index: -1;
-  background-image: linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4)), var(--bg-image);
+  transition: background-image .6s;
+  background-image: var(--bg-image);
 }
-.container {
-  background-color: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(8px);
-  padding: 2rem 2.5rem; border-radius: 16px;
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  max-width: 100%; width: 640px; margin: 2rem auto;
+.background-container::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.35));
 }
-h1 { color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.6rem; }
-p { color: #7f8c8d; line-height: 1.6; }
-button#get-image-btn {
-  background-color: #f6821f; color: #fff;
-  padding: 0.9rem 2.2rem; border: none; border-radius: 10px;
-  cursor: pointer; font-size: 1.05rem; margin-top: 1rem;
-  transition: transform .15s ease, box-shadow .15s ease;
+@media (prefers-color-scheme: dark) {
+  .background-container::after { background: rgba(15,17,21,.55); }
 }
-button#get-image-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(246,130,31,.4); }
-#image-container { margin-top: 2rem; }
+.wrap { max-width: 760px; margin: 0 auto; }
+.hero {
+  background: var(--card); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 2.5rem 1.75rem 2rem; text-align: center;
+}
+.hero h1 { margin: 0 0 .4rem; font-size: 1.75rem; letter-spacing: .5px; }
+.hero .sub { color: var(--muted); margin: 0 0 1rem; font-size: 1rem; }
+.hero .stats { color: var(--muted); font-size: .85rem; margin: 0 0 1.25rem; }
+.hero .stats b { color: var(--text); font-weight: 600; }
+.btn {
+  display: inline-block; background: var(--accent); color: #fff;
+  border: none; border-radius: 12px; cursor: pointer;
+  padding: .85rem 2.4rem; font-size: 1.05rem; font-weight: 600;
+  transition: transform .15s, box-shadow .15s;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(246,130,31,.45); }
+.btn:active { transform: translateY(0); }
+#image-container { margin-top: 1.5rem; min-height: 0; }
+#image-container .loading { color: var(--muted); }
 .random-image {
-  max-width: 100%; height: auto; border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  animation: fadeIn .4s ease;
+  max-width: 100%; max-height: 70vh; height: auto;
+  border-radius: 14px; border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  animation: fadeIn .35s ease;
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.loading, .error { color: #2c3e50; }
-#api-info { margin-top: 2.5rem; border-top: 1px solid rgba(0,0,0,.08); padding-top: 1.5rem; text-align: left; }
-#api-info h2 { color: #2c3e50; font-size: 1.2rem; }
-#api-info h4 { color: #2c3e50; margin-bottom: .2rem; }
-.api-url-container {
-  display: flex; align-items: center; justify-content: space-between;
-  background: #f4f5f7; padding: .8rem 1rem; border-radius: 8px;
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+.img-actions { margin-top: .8rem; font-size: .9rem; color: var(--muted); }
+.img-actions a { color: var(--accent); text-decoration: none; }
+section.card {
+  background: var(--card); backdrop-filter: blur(12px);
+  border: 1px solid var(--border); border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.6rem 1.5rem; margin-top: 1.25rem;
 }
-#copy-btn {
-  background: transparent; border: none; cursor: pointer;
-  font-size: .95rem; color: #2c3e50; padding: .2rem .4rem;
+section.card > h2 {
+  font-size: 1.15rem; margin: 0 0 1rem;
+  display: flex; align-items: center; gap: .5rem;
 }
-#copy-btn.copied { color: #27ae60; }
-pre {
-  background: #f4f5f7; padding: .8rem 1rem; border-radius: 8px;
-  overflow-x: auto; font-size: .85rem; line-height: 1.5;
+section.card > h2 .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  display: inline-block; flex: none;
 }
-code { font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; color: #333; }
-.html-code { color: #8e44ad; } .css-code { color: #2980b9; } .js-code { color: #e67e22; }
+.endpoint-box {
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: .7rem .9rem;
+}
+.endpoint-box code { flex: 1; word-break: break-all; font-size: .9rem; color: var(--code-text); }
+.copy-btn {
+  flex: none; background: transparent; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: .3rem .7rem; font-size: .82rem; cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.copy-btn:hover { color: var(--text); }
+.copy-btn.copied { color: #27ae60; border-color: #27ae60; }
+.example { margin-bottom: 1.4rem; }
+.example:last-child { margin-bottom: 0; }
+.example h3 { font-size: .95rem; margin: 0 0 .5rem; color: var(--text); }
+.example h3 span { color: var(--muted); font-weight: 400; font-size: .85rem; }
+pre.code {
+  position: relative; margin: 0;
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: .85rem 3.8rem .85rem 1rem;
+  overflow-x: auto; font-size: .84rem; line-height: 1.65;
+}
+pre.code code { font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace; color: var(--code-text); white-space: pre; }
+pre.code .copy-btn { position: absolute; top: .5rem; right: .5rem; }
+.param-item { display: flex; gap: .75rem; padding: .55rem 0; border-bottom: 1px dashed var(--border); font-size: .92rem; }
+.param-item:last-child { border-bottom: none; }
+.param-item code:first-child {
+  flex: none; min-width: 7.5rem; font-size: .84rem;
+  background: var(--accent-weak); color: var(--accent);
+  border-radius: 6px; padding: .15rem .5rem; height: fit-content;
+}
+.param-item .desc { color: var(--muted); }
+footer { text-align: center; color: var(--muted); font-size: .82rem; margin-top: 1.5rem; }
+footer a { color: var(--muted); }
+@media (max-width: 520px) {
+  .hero { padding: 2rem 1.25rem 1.6rem; }
+  .hero h1 { font-size: 1.4rem; }
+  section.card { padding: 1.3rem 1.1rem; }
+  .param-item { flex-direction: column; gap: .3rem; }
+}
 `;
 
 const HTML = `<!DOCTYPE html>
@@ -117,97 +182,197 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="随机图片 API — Cloudflare Workers + R2，设备自适应，免费调用">
 <title>随机图片 API</title>
 <style>${CSS}</style>
 </head>
 <body>
 <div class="background-container"></div>
-<div class="container">
-  <h1>随机图片 API</h1>
-  <p>点击下方按钮，立即获取随机图片</p>
-  <button id="get-image-btn">获取图片</button>
-  <div id="image-container"></div>
-  <div id="api-info">
-    <h2>API 使用说明</h2>
-    <p>通过以下 URL 直接获取随机图片（默认 302 重定向到图片）：</p>
-    <div class="api-url-container">
-      <pre style="background:none;padding:0"><code id="api-url"></code></pre>
-      <button id="copy-btn" title="复制 API 地址">复制</button>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>随机图片 API</h1>
+    <p class="sub">每次请求返回一张随机图片 · 自动识别设备 · Cloudflare 边缘加速</p>
+    <p class="stats">已收录 <b id="stat-pc">…</b> 张桌面壁纸 · <b id="stat-mobile">…</b> 张移动壁纸</p>
+    <button id="get-image-btn" class="btn">随机来一张</button>
+    <div id="image-container"></div>
+  </div>
+
+  <section class="card">
+    <h2><span class="dot"></span>接口地址</h2>
+    <div class="endpoint-box">
+      <code class="api-url"></code>
+      <button class="copy-btn" data-copy=".api-url">复制</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="dot"></span>调用方式</h2>
+
+    <div class="example">
+      <h3>1 · 浏览器直接打开 <span>— 返回 302 重定向到图片</span></h3>
+      <pre class="code"><code class="api-url"></code><button class="copy-btn" data-copy-prev>复制</button></pre>
     </div>
 
-    <h4>1. 直接作为图片引用</h4>
-    <pre><code class="html-code">&lt;img src="<span id="api-url-example"></span>" alt="Random Image"&gt;</code></pre>
+    <div class="example">
+      <h3>2 · HTML 图片标签 <span>— 网页里最常用的方式</span></h3>
+      <pre class="code"><code>&lt;img src="<span class="api-url"></span>" alt="随机图片"&gt;</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+    </div>
 
-    <h4>2. 作为 CSS 背景</h4>
-    <pre><code class="css-code">body {
-  background-image: url('<span id="api-url-example2"></span>');
+    <div class="example">
+      <h3>3 · CSS 背景 <span>— 每次刷新自动换背景</span></h3>
+      <pre class="code"><code>body {
+  background-image: url('<span class="api-url"></span>');
   background-size: cover;
-}</code></pre>
+  background-position: center;
+}</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+    </div>
 
-    <h4>3. 获取 JSON（含图片直链）</h4>
-    <pre><code class="js-code">fetch('<span id="api-url-example3"></span>?format=json')
+    <div class="example">
+      <h3>4 · JavaScript <span>— 拿到图片直链后自行处理</span></h3>
+      <pre class="code"><code>fetch('<span class="api-url"></span>?format=json')
   .then(r => r.json())
-  .then(d => console.log(d.url, d.key));</code></pre>
+  .then(d => {
+    console.log(d.url);   // 图片直链
+    console.log(d.key);   // 桶内路径
+    console.log(d.folder); // pc 或 mobile
+  });</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+    </div>
 
-    <h4>设备自适应</h4>
-    <p>API 根据 User-Agent 自动返回 pc/ 或 mobile/ 目录下的图片；也可以用 <code>?dir=pc</code> 或 <code>?dir=mobile</code> 强制指定。</p>
-  </div>
+    <div class="example">
+      <h3>5 · Markdown <span>— 论坛、README 里直接引用</span></h3>
+      <pre class="code"><code>![随机图片](<span class="api-url"></span>)</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+    </div>
+
+    <div class="example">
+      <h3>6 · 命令行 curl <span>— 下载图片 / 写壁纸轮换脚本</span></h3>
+      <pre class="code"><code># 直接下载一张随机图（-L 跟随重定向）
+curl -L -o wallpaper.jpg '<span class="api-url"></span>'
+
+# 拿 JSON 直链
+curl '<span class="api-url"></span>?format=json'</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+    </div>
+
+    <div class="example">
+      <h3>7 · Python <span>— 爬虫 / 机器人里使用</span></h3>
+      <pre class="code"><code>import requests
+
+url = '<span class="api-url"></span>'
+
+# 直接拿图片二进制
+r = requests.get(url, allow_redirects=True)
+img = r.content
+
+# 或者拿直链信息
+data = requests.get(url + '?format=json').json()
+print(data['url'], data['key'])</code><button class="copy-btn" data-copy-prev>复制</button></pre>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="dot"></span>可选参数</h2>
+    <div class="param-item">
+      <code>?format=json</code>
+      <span class="desc">不重定向，直接返回 JSON：<code>{ url, key, folder }</code>，方便程序解析</span>
+    </div>
+    <div class="param-item">
+      <code>?dir=pc</code>
+      <span class="desc">强制返回桌面目录的图片（默认按 User-Agent 自动判断）</span>
+    </div>
+    <div class="param-item">
+      <code>?dir=mobile</code>
+      <span class="desc">强制返回移动目录的图片</span>
+    </div>
+    <div class="param-item">
+      <code>设备自适应</code>
+      <span class="desc">不带参数时，手机访问返回移动目录、电脑访问返回桌面目录，无需任何配置</span>
+    </div>
+  </section>
+
+  <footer>
+    Powered by Cloudflare Workers + R2 ·
+    <a href="https://github.com/xccado/Suiji-api" target="_blank" rel="noopener">GitHub</a>
+  </footer>
 </div>
+
 <script>
 (function () {
-  var apiEndpoint = '/api/random';
-  var fullApiUrl = location.origin + apiEndpoint;
-  ['api-url', 'api-url-example', 'api-url-example2', 'api-url-example3'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.textContent = fullApiUrl;
-  });
+  var fullApiUrl = location.origin + '/api/random';
+  document.querySelectorAll('.api-url').forEach(function (el) { el.textContent = fullApiUrl; });
 
   var btn = document.getElementById('get-image-btn');
   var container = document.getElementById('image-container');
   var bg = document.querySelector('.background-container');
-  var copyBtn = document.getElementById('copy-btn');
 
-  function fetchImage() {
-    return fetch(apiEndpoint).then(function (res) {
+  // 收录统计
+  fetch('/api/stats').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    if (!d) return;
+    var pc = document.getElementById('stat-pc'), mob = document.getElementById('stat-mobile');
+    if (pc) pc.textContent = d.pc;
+    if (mob) mob.textContent = d.mobile;
+  }).catch(function () {});
+
+  function toast(btnEl, ok) {
+    var old = btnEl.textContent;
+    btnEl.textContent = ok ? '已复制' : '失败';
+    btnEl.classList.add('copied');
+    setTimeout(function () { btnEl.textContent = old; btnEl.classList.remove('copied'); }, 1600);
+  }
+
+  document.querySelectorAll('.copy-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var text;
+      if (b.hasAttribute('data-copy')) {
+        var target = document.querySelector(b.getAttribute('data-copy'));
+        text = target ? target.textContent : '';
+      } else {
+        var pre = b.closest('pre');
+        text = pre ? pre.querySelector('code').textContent : '';
+      }
+      navigator.clipboard.writeText(text).then(function () { toast(b, true); }, function () { toast(b, false); });
+    });
+  });
+
+  function fetchJson() {
+    return fetch('/api/random?format=json').then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.blob();
+      return res.json();
     });
   }
 
   btn.addEventListener('click', function () {
-    container.innerHTML = '<p class="loading">加载中...</p>';
-    fetchImage().then(function (blob) {
-      var url = URL.createObjectURL(blob);
+    container.innerHTML = '<p class="loading">加载中…</p>';
+    fetchJson().then(function (d) {
       container.innerHTML = '';
       var img = new Image();
       img.className = 'random-image';
-      img.alt = 'Random Image';
-      img.src = url;
+      img.alt = d.key;
+      img.src = d.url;
+      img.onload = function () {
+        var p = document.createElement('p');
+        p.className = 'img-actions';
+        var a = document.createElement('a');
+        a.href = d.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = '在新标签页打开原图';
+        p.appendChild(a);
+        container.appendChild(p);
+      };
       container.appendChild(img);
-    }).catch(function (err) {
-      container.innerHTML = '<p class="error">加载失败：' + err.message + '</p>';
+    }).catch(function (e) {
+      container.innerHTML = '<p class="loading">加载失败：' + e.message + '</p>';
     });
   });
 
-  function setBackgroundImage() {
-    fetchImage().then(function (blob) {
-      document.documentElement.style.setProperty('--bg-image', 'url(' + URL.createObjectURL(blob) + ')');
+  function refreshBackground() {
+    fetchJson().then(function (d) {
+      bg.style.backgroundImage = 'url(' + d.url + ')';
     }).catch(function () {});
   }
 
-  copyBtn.addEventListener('click', function () {
-    navigator.clipboard.writeText(fullApiUrl).then(function () {
-      copyBtn.classList.add('copied');
-      copyBtn.textContent = '已复制';
-      setTimeout(function () {
-        copyBtn.classList.remove('copied');
-        copyBtn.textContent = '复制';
-      }, 2000);
-    });
-  });
-
-  setBackgroundImage();
-  setInterval(setBackgroundImage, 30000);
+  refreshBackground();
+  setInterval(refreshBackground, 30000);
 })();
 </script>
 </body>
@@ -234,6 +399,15 @@ export default {
 
       if (url.pathname === "/" || url.pathname === "/index.html") {
         return homepage();
+      }
+
+      // ---- 收录统计 ----
+      if (url.pathname === "/api/stats") {
+        const [pc, mobile] = await Promise.all([
+          listImageKeys(env.BUCKET, dirPC, ttl),
+          listImageKeys(env.BUCKET, dirMobile, ttl),
+        ]);
+        return json({ pc: pc.length, mobile: mobile.length });
       }
 
       // ---- 随机图片 ----
