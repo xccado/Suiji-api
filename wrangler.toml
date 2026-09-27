@@ -2,12 +2,10 @@ name = "suiji-api"
 main = "worker.js"
 compatibility_date = "2025-09-01"
 
-# R2 绑定（必填）：把 <BUCKET_NAME> 换成你的 R2 桶名
-# 也可以直接运行 ./deploy-cf.sh，脚本会自动创建桶并把绑定追加到这里
-#
-# [[r2_buckets]]
-# binding = "BUCKET"
-# bucket_name = "<BUCKET_NAME>"
+# R2 绑定：绑定到现有的 lobe 桶（pc/ 667 张 + mobile/ 3068 张图片）
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "lobe"
 
 # 可选配置（都有默认值）
 # [vars]
